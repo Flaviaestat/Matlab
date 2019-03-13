@@ -1,0 +1,169 @@
+%%
+clear
+close all;
+clc
+
+%%
+% iremos utilizar a base transformed
+[train_xls,train_xls_tranformed] = load_database('covtype_train.xlsx');
+[test_xls, test_xls_tranformed] = load_database('covtype_test.xlsx');
+
+
+%% FASE de treino - usando todas as colunas
+columns = [2:13];
+groups = unique(train_xls_tranformed(:,end));
+
+
+% probabilidades a priori de cada grupo - frequencia relativa
+prior = histc(train_xls_tranformed(:,end), groups) / ...
+    length(train_xls_tranformed(:,end));
+
+
+data = train_xls_tranformed(:, columns);
+
+for group=1:length(groups)
+    data_for_group_idx = train_xls_tranformed(:,end) == groups(group);
+    data_for_group=data(data_for_group_idx, :);
+
+    % estima os parâmetros por máxima verosssimilhança.
+    pd_2(group) = fitdist(data_for_group(:,1), 'normal');
+    [a,b] = unifit(data_for_group(:,2));
+    pd_3(group) = makedist('uniform','lower',a, 'upper', b);
+    
+    pd_4(group) = fitdist(data_for_group(:,3), 'gamma');
+    pd_5(group) = fitdist(data_for_group(:,4), 'exponential');
+    pd_6(group) = fitdist(data_for_group(:,5), 'normal');
+    [c,d] = unifit(data_for_group(:,6));
+    pd_7(group) = makedist('uniform','lower',c, 'upper', d);
+    pd_8(group) = fitdist(data_for_group(:,7), 'normal');
+    pd_9(group) = fitdist(data_for_group(:,8), 'normal');
+    pd_10(group) = fitdist(data_for_group(:,9), 'normal');
+    
+    [e,f] = unifit(data_for_group(:,10));
+    pd_11(group) = makedist('uniform','lower',e, 'upper', f);
+     
+    
+end
+
+
+label = train_xls_tranformed(:,14)
+Wilderness_Area = train_xls_tranformed(:,12)
+Soil_Type = train_xls_tranformed(:,13)
+
+
+tab = tabulate(Wilderness_Area(label == 1))
+
+
+% variáveis discretas pelo método de frequencia contagem / total
+
+vals_wilderness = length(tabulate(Wilderness_Area))
+%matriz de x linhas e 1 coluna
+a_Wilderness_Area_Output1 = tabulate(Wilderness_Area(label == 1))
+a_Wilderness_Area_Output1 = a_Wilderness_Area_Output1(:,3)
+
+if length(a_Wilderness_Area_Output1) < vals_wilderness
+    a_Wilderness_Area_Output1(vals_wilderness,:) = 0 
+end
+
+a_Wilderness_Area_Output2 = tabulate(Wilderness_Area(label == 2))
+a_Wilderness_Area_Output2 = a_Wilderness_Area_Output2(:,3)
+if length(a_Wilderness_Area_Output2) < vals_wilderness
+    a_Wilderness_Area_Output2(vals_wilderness,:) = 0 
+end
+
+a_Wilderness_Area_Output3 = tabulate(Wilderness_Area(label == 3))
+a_Wilderness_Area_Output3 = a_Wilderness_Area_Output3(:,3)
+if length(a_Wilderness_Area_Output3) < vals_wilderness
+    a_Wilderness_Area_Output3(vals_wilderness,:) = 0 
+end
+
+a_Wilderness_Area_Output4 = tabulate(Wilderness_Area(label == 4))
+a_Wilderness_Area_Output4 = a_Wilderness_Area_Output4(:,3)
+if length(a_Wilderness_Area_Output4) < vals_wilderness
+    a_Wilderness_Area_Output4(vals_wilderness,:) = 0 
+end
+
+
+a_Wilderness_Area_Output5 = tabulate(Wilderness_Area(label == 5))
+a_Wilderness_Area_Output5 = a_Wilderness_Area_Output5(:,3)
+if length(a_Wilderness_Area_Output5) < vals_wilderness
+    a_Wilderness_Area_Output5(vals_wilderness,:) = 0 
+end
+
+
+a_Wilderness_Area_Output6 = tabulate(Wilderness_Area(label == 6))
+a_Wilderness_Area_Output6 = a_Wilderness_Area_Output6(:,3)
+if length(a_Wilderness_Area_Output6) < vals_wilderness
+    a_Wilderness_Area_Output6(vals_wilderness,:) = 0 
+end
+
+a_Wilderness_Area_Output7 = tabulate(Wilderness_Area(label == 7))
+a_Wilderness_Area_Output7 = a_Wilderness_Area_Output7(:,3)
+if length(a_Wilderness_Area_Output7) < vals_wilderness
+    a_Wilderness_Area_Output7(vals_wilderness,:) = 0 
+end
+
+%precisa gerar uma matriz de 7 colunas e x linhas (x=numero de valores distintos do atributo)
+a_Wilderness_Area = [a_Wilderness_Area_Output1, a_Wilderness_Area_Output2, ... 
+    a_Wilderness_Area_Output3, a_Wilderness_Area_Output4, ...
+    a_Wilderness_Area_Output5, a_Wilderness_Area_Output6, ...
+    a_Wilderness_Area_Output7]
+
+vals_Soil_Type = length(tabulate(Soil_Type))
+
+a_Soil_Type_Output1 = tabulate(Soil_Type(label == 1))
+a_Soil_Type_Output1 = a_Soil_Type_Output1(:,3)
+
+if length(a_Soil_Type_Output1) < vals_Soil_Type
+    a_Soil_Type_Output1(vals_Soil_Type,:) = 0 
+end
+
+a_Soil_Type_Output2 = tabulate(Soil_Type(label == 2))
+a_Soil_Type_Output2 = a_Soil_Type_Output2(:,3)
+if length(a_Soil_Type_Output2) < vals_Soil_Type
+    a_Soil_Type_Output2(vals_Soil_Type,:) = 0 
+end
+
+a_Soil_Type_Output3 = tabulate(Soil_Type(label == 3))
+a_Soil_Type_Output3 = a_Soil_Type_Output3(:,3)
+if length(a_Soil_Type_Output3) < vals_Soil_Type
+    a_Soil_Type_Output3(vals_Soil_Type,:) = 0 
+end
+
+a_Soil_Type_Output4 = tabulate(Soil_Type(label == 4))
+a_Soil_Type_Output4 = a_Soil_Type_Output4(:,3)
+if length(a_Soil_Type_Output4) < vals_Soil_Type
+    a_Soil_Type_Output4(vals_Soil_Type,:) = 0 
+end
+
+
+a_Soil_Type_Output5 = tabulate(Soil_Type(label == 5))
+a_Soil_Type_Output5 = a_Soil_Type_Output5(:,3)
+if length(a_Soil_Type_Output5) < vals_Soil_Type
+    a_Soil_Type_Output5(vals_Soil_Type,:) = 0 
+end
+
+
+a_Soil_Type_Output6 = tabulate(Soil_Type(label == 6))
+a_Soil_Type_Output6 = a_Soil_Type_Output6(:,3)
+if length(a_Soil_Type_Output6) < vals_Soil_Type
+    a_Soil_Type_Output6(vals_Soil_Type,:) = 0 
+end
+
+a_Soil_Type_Output7 = tabulate(Soil_Type(label == 7))
+a_Soil_Type_Output7 = a_Soil_Type_Output7(:,3)
+if length(a_Soil_Type_Output7) < vals_Soil_Type
+    a_Soil_Type_Output7(vals_Soil_Type,:) = 0 
+end
+    
+a_Soil_Type = [a_Soil_Type_Output1, a_Soil_Type_Output2,  ...
+a_Soil_Type_Output3, a_Soil_Type_Output4, a_Soil_Type_Output5, ...
+a_Soil_Type_Output6, a_Soil_Type_Output7]
+
+%% faz a classificação
+data_test = test_xls_tranformed(:, columns);
+dists = {pd_2, pd_3, pd_4, pd_5, pd_6, pd_7, pd_8, pd_9, pd_10, pd_11};
+
+[class, ranks] = classify_naive_bayes_fl(data_test, dists, groups, prior, a_Soil_Type, a_Wilderness_Area);
+
+

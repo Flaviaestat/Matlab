@@ -1,0 +1,143 @@
+clear
+close all
+clc
+
+%% item a
+display(' ');
+display('item a - estimação dos parâmetros do modelo.');
+% ln da densidade de probabilidade log-normal
+ln_rho_qen = @(n, q, mu, alpha, beta) -log(q) - log(alpha * n + beta) - 0.5*log(2*pi)...
+    - ((log(q) - mu).^2) / (2 * (alpha * n + beta).^2);
+
+data = csvread('empacotadora.csv'); % valores de qn
+
+% log-verossimilhança
+l = @(theta) sum(arrayfun(...
+    @(n, q) ln_rho_qen(n, q, theta(1), theta(2), theta(3)), ...
+    1:length(data), ... % valores de n
+    data' ... % valores de qn
+    ));
+
+% maximização da log-verossimilhança
+tries = 10;
+l_best = -inf;
+theta_best = [];
+while tries > 0
+    
+mu_0 = mean(log(data)) + randn*10;
+alpha_0 = 1e-7 + randn * 1e-9;
+beta_0 = 1e-7 + randn * 1e-9;
+theta_0 = [mu_0, alpha_0, beta_0]; % inicialização
+
+lb = [0; 0; 1e-10];
+
+opt = optimset('display', 'off', 'TolFun', 1e-12, 'TolX', 1e-12);
+
+[theta_, neg_log_best] = fmincon(@(x) -l(x), theta_0, [], [], [], [], ...
+    lb, [], [], opt);
+
+if -neg_log_best > l_best
+    l_best = -neg_log_best;
+    theta_best = theta_;
+    
+    display(['log-verossimilhança: ', num2str(l_best)]);
+end
+
+tries = tries - 1;
+
+end
+
+l_best
+theta_best % resultado esperado: mu = 6.2147, alpha = 1.8533e-06 e beta = 0.002057
+
+%% item b
+display(' ');
+display('item b - velocidade média');
+theta = theta_best; % pega o melhor modelo.
+pn = @(n) integral(@(s) normpdf(s) .* (logncdf(505-s, theta(1), theta(2)*n + theta(3)) ...
+    - logncdf(495-s, theta(1), theta(2)*n + theta(3))), -inf, inf); 
+
+total_pac = sum(arrayfun(pn, 1:72000)); % total de pacotes esperado = soma(E[In]) para n indo de 1 a 72 mil.
+V = total_pac / 72; % velocidade média = 202.4917 pacotes / hora.
+
+%% item c
+display(' ');
+display('item c - cálculo da função confiabilidade.');
+
+% p(An) -> probabilidade do n-ésimo pacote fora das especificações.
+pAn = @(n) 1 - (logncdf(505) - logncdf(495));
+
+% p(Bn | An) -> probabilidade de a balança alocar para a distribuição, 
+%               dado que o n-ésimo pacote está fora das especificações.
+prob_eps = @(q) normcdf(505 - q) - normcdf(405 - q);
+integrand = @(n, q) lognpdf(q, theta(1), theta(2)*n + theta(3)) .* prob_eps(q);
+
+pBn_An = @(n) integral(@(q) integrand(n, q), 0, 495) + ...
+    integral(@(q) integrand(n, q), 505, inf); % p(Bn | An)
+
+% p(Bn, An) ->  probabilidade de a balança alocar para a distribuição E 
+%               o n-ésimo pacote estar fora das especificações.
+pBnAn = @(n) pBn_An(n) * pAn(n);
+
+tmax = 3;
+prod_n_1 = 1;
+pN_sum = 0;
+total_points = floor(1000 * tmax);
+r = zeros(total_points);
+t = zeros(total_points);
+
+for n_val = 1:total_points
+
+% p(N = n) -> função massa da v.a. N, que representa o índice do 1o pacote
+% alocado erroneamente para a distribuição.
+p_BnAn = pBnAn(n_val);
+pN = p_BnAn * prod_n_1;
+
+prod_n_1 = prod_n_1 * (1 - p_BnAn);
+
+% função confiabilidade: R(t) = p(T > t) = 1 - p(T <= t)
+pN_sum = pN_sum + pN;
+r(n_val) = 1 - pN_sum;
+t(n_val) = n_val / 1000;
+
+end
+
+% faz o gráfico
+figure;
+plot(t, r, 'k', 'LineWidth', 2), grid on, grid minor;
+ylabel('p(T > t)');
+xlabel('t (horas)');
+title('função confiabilidade');
+
+%% item d
+display(' ');
+display('item d - cálculo do MTTF');
+
+n_max = 10000; % quanto maior, melhor. Representa o número máximo de parcelas que serão usadas na soma.
+rel_tol = 1e-5; % vamos parar de somar quando a variação relativa for inferior a este valor.
+
+prod_n_1 = 1;
+n_pN = zeros(1, n_max);
+
+% repete o for do item c
+for n_val = 1:n_max   
+    p_BnAn = pBnAn(n_val);
+    pN = p_BnAn * prod_n_1;
+    
+    last_sum = sum(n_pN);
+    n_pN(n_val) = n_val * pN;
+    new_sum = last_sum + n_pN(n_val);
+    
+    if abs(new_sum - last_sum) / abs(last_sum) < rel_tol
+        break; % não há ganho em continuar acrescentando novas parcelas.
+    end
+    
+    prod_n_1 = prod_n_1 * (1 - p_BnAn);   
+end
+
+n_iteracoes = n_val
+format shortG
+MTTF = sum(n_pN) / 1000 % MTTF medido em horas
+MTTF_minutos = MTTF * 60
+%
+

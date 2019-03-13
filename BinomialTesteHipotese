@@ -1,0 +1,19 @@
+clc
+clear
+close all
+
+rho = @(k) nchoosek(sym(100),k)*0.25^k*0.75^(100-k);
+alpha = @(Ns) sum(arrayfun(rho, Ns:100));
+
+
+alpha(32)
+
+
+for i = 1:100
+    alpha_k = alpha(i);
+    if (alpha_k <= 0.05) && (alpha_k > 0.00)
+    y = sprintf('%.2f',(alpha_k * 100));
+    disp(i);
+    break
+    end
+end

@@ -1,0 +1,33 @@
+function [class, ranks] = classify_naive_bayes_fl(data_test, dists, groups, pCk, a_Soil_Type, a_Wilderness_Area)
+
+y = ones(size(data_test, 1), length(groups)) .* ...
+    repmat(log(pCk(:)'), size(data_test, 1), 1);
+
+
+for j=1:length(dists) % para cada atributo
+    dists_for_attr = dists{j};
+    for i=1:length(groups) % para cada grupo de classificação       
+        dist_for_group = dists_for_attr(i);
+      
+        y(:, i) = y(:, i) + log(1e-200+pdf(dist_for_group, data_test(:, j))) 
+       
+    end
+end
+
+% para cada grupo de classificação com as vars categóricas   
+for k=1:length(groups)    
+
+        for l = 1:size(data_test)
+        soil_type_indiv = data_test(l, 12)
+        wilderness_indiv = data_test(l, 11)
+               
+        y(l, k) = y(l, k) + log(1e-200 + a_Soil_Type(soil_type_indiv, k)) + log(1e-200 + a_Wilderness_Area(wilderness_indiv, k)) ;
+        end
+
+end
+
+ranks = y;
+
+[~, class] = max(y, [], 2);
+
+end
